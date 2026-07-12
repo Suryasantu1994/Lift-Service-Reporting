@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitives & Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isGitamUser() {
+      return isSignedIn() && request.auth.token.email.split('@')[1] == 'gitam.edu' && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidBuilding(data) {
+      return data.keys().hasAll(['id', 'name', 'location', 'type', 'contact', 'image'])
+        && data.keys().size() == 6
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.location is string && data.location.size() <= 500
+        && data.type is string && data.type.size() <= 100
+        && data.contact is string && data.contact.size() <= 100
+        && data.image is string && data.image.size() <= 1000;
+    }
+
+    function isValidLift(data) {
+      return data.keys().hasAll(['id', 'buildingId', 'name', 'area', 'model', 'status'])
+        && data.keys().size() == 6
+        && data.id is string && data.id.size() <= 128
+        && data.buildingId is string && data.buildingId.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.area is string && data.area.size() <= 200
+        && data.model is string && data.model.size() <= 100
+        && data.status in ['Operational', 'Maintenance', 'Breakdown'];
+    }
+
+    function isValidServiceReport(data) {
+      return data.keys().hasAll(['id', 'liftId', 'buildingId', 'date', 'technician', 'description', 'partsReplaced', 'nextServiceDate', 'cost', 'status'])
+        && data.keys().size() == 10
+        && data.id is string && data.id.size() <= 128
+        && data.liftId is string && data.liftId.size() <= 128
+        && data.buildingId is string && data.buildingId.size() <= 128
+        && data.date is string && data.date.size() == 10 // YYYY-MM-DD
+        && data.technician is string && data.technician.size() <= 200
+        && data.description is string && data.description.size() <= 2000
+        && data.partsReplaced is list && data.partsReplaced.size() <= 50
+        && data.nextServiceDate is string && data.nextServiceDate.size() == 10
+        && data.cost is string && data.cost.size() <= 50
+        && data.status is string && data.status.size() <= 100;
+    }
+
+    function isValidBreakdownReport(data) {
+      return data.keys().hasAll(['id', 'liftId', 'buildingId', 'date', 'technician', 'issue', 'status'])
+        && (data.keys().size() == 7 || (data.keys().size() == 8 && data.keys().hasAll(['resolution'])))
+        && data.id is string && data.id.size() <= 128
+        && data.liftId is string && data.liftId.size() <= 128
+        && data.buildingId is string && data.buildingId.size() <= 128
+        && data.date is string && data.date.size() == 10
+        && data.technician is string && data.technician.size() <= 200
+        && data.issue is string && data.issue.size() <= 2000
+        && data.status in ['Resolved', 'Pending', 'In Progress']
+        && (data.status != 'Resolved' || ('resolution' in data && data.resolution is string && data.resolution.size() > 0))
+        && (!('resolution' in data) || (data.resolution is string && data.resolution.size() <= 2000));
+    }
+
+    // --- Collections ---
+
+    match /buildings/{buildingId} {
+      allow read: if isGitamUser();
+      allow create: if isGitamUser() && isValidId(buildingId) && isValidBuilding(incoming());
+      allow update: if isGitamUser() && isValidBuilding(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'location', 'type', 'contact', 'image'])
+      );
+      allow delete: if isGitamUser();
+    }
+
+    match /lifts/{liftId} {
+      allow read: if isGitamUser();
+      allow create: if isGitamUser() && isValidId(liftId) && isValidLift(incoming())
+        && exists(/databases/$(database)/documents/buildings/$(incoming().buildingId));
+      allow update: if isGitamUser() && isValidLift(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'area', 'model', 'status'])
+      );
+      allow delete: if isGitamUser();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isGitamUser();
+      allow create: if isGitamUser() && isValidId(reportId) && isValidServiceReport(incoming())
+        && exists(/databases/$(database)/documents/lifts/$(incoming().liftId));
+      allow update: if isGitamUser() && isValidServiceReport(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['technician', 'description', 'partsReplaced', 'nextServiceDate', 'cost', 'status'])
+      );
+      allow delete: if isGitamUser();
+    }
+
+    match /breakdowns/{breakdownId} {
+      allow read: if isGitamUser();
+      allow create: if isGitamUser() && isValidId(breakdownId) && isValidBreakdownReport(incoming())
+        && exists(/databases/$(database)/documents/lifts/$(incoming().liftId));
+      allow update: if isGitamUser() && isValidBreakdownReport(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['technician', 'issue', 'resolution', 'status'])
+      );
+      allow delete: if isGitamUser();
+    }
+  }
+}

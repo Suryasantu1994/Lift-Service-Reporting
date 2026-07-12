@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "Building": {
+      "title": "Building",
+      "description": "Represents a physical building containing lifts.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "type": { "type": "string" },
+        "contact": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "name", "location", "type", "contact", "image"]
+    },
+    "Lift": {
+      "title": "Lift",
+      "description": "Represents a lift unit within a building.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "buildingId": { "type": "string" },
+        "name": { "type": "string" },
+        "area": { "type": "string" },
+        "model": { "type": "string" },
+        "status": { "type": "string", "enum": ["Operational", "Maintenance", "Breakdown"] }
+      },
+      "required": ["id", "buildingId", "name", "area", "model", "status"]
+    },
+    "ServiceReport": {
+      "title": "Service Report",
+      "description": "A record of a service or maintenance activity on a lift.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "liftId": { "type": "string" },
+        "buildingId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "technician": { "type": "string" },
+        "description": { "type": "string" },
+        "partsReplaced": { "type": "array", "items": { "type": "string" } },
+        "nextServiceDate": { "type": "string", "format": "date" },
+        "cost": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "liftId", "buildingId", "date", "technician", "description", "partsReplaced", "nextServiceDate", "cost", "status"]
+    },
+    "BreakdownReport": {
+      "title": "Breakdown Report",
+      "description": "A record of a lift breakdown and its resolution status.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "liftId": { "type": "string" },
+        "buildingId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "technician": { "type": "string" },
+        "issue": { "type": "string" },
+        "resolution": { "type": "string" },
+        "status": { "type": "string", "enum": ["Resolved", "Pending", "In Progress"] }
+      },
+      "required": ["id", "liftId", "buildingId", "date", "technician", "issue", "status"]
+    }
+  },
+  "firestore": {
+    "buildings": {
+      "schema": "Building",
+      "description": "Global collection of buildings."
+    },
+    "lifts": {
+      "schema": "Lift",
+      "description": "Global collection of lifts."
+    },
+    "reports": {
+      "schema": "ServiceReport",
+      "description": "Global collection of service reports."
+    },
+    "breakdowns": {
+      "schema": "BreakdownReport",
+      "description": "Global collection of breakdown reports."
+    }
+  }
+}
