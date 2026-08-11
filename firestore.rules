@@ -12,12 +12,11 @@ service cloud.firestore {
     }
 
     function isAuthorizedUser() {
-      return isSignedIn() && 
-        request.auth.token.keys().contains('email') && (
-          (request.auth.token.email.split('@')[1] == 'gitam.edu') ||
-          request.auth.token.email == 'varmapulagala2000@gmail.com' ||
-          request.auth.token.email == 'vkatakam@gitam.edu'
-        );
+      return isSignedIn() && (
+        request.auth.token.email.lower().matches('.*@gitam\\.edu$') ||
+        request.auth.token.email.lower() == 'varmapulagala2000@gmail.com' ||
+        request.auth.token.email.lower() == 'vkatakam@gitam.edu'
+      );
     }
 
     function isValidId(id) {

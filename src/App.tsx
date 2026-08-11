@@ -65,11 +65,22 @@ export default function App() {
   const [authLoading, setAuthLoading] = React.useState(true);
 
   React.useEffect(() => {
-    return auth.onAuthStateChanged((user) => {
+    const timeout = setTimeout(() => {
+      if (authLoading) {
+        setAuthLoading(false);
+      }
+    }, 5000);
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setAuthLoading(false);
+      clearTimeout(timeout);
     });
-  }, []);
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [authLoading]);
 
   const { 
     buildings, lifts, reports, breakdowns, loading: dataLoading,

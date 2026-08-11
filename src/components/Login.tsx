@@ -13,11 +13,17 @@ export default function Login() {
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
+      console.log('Attempting login...');
       await signInWithPopup(auth, provider);
+      console.log('Login successful');
     } catch (error: any) {
       console.error('Login failed:', error);
       if (error.code === 'auth/popup-blocked') {
-        alert('Please allow popups for this site or open the app in a new tab.');
+        alert('The sign-in popup was blocked by your browser. Please allow popups or open the app in a new tab.');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        // Ignore user cancellation
+      } else {
+        alert(`Login failed: ${error.message}. Please try again.`);
       }
     }
   };

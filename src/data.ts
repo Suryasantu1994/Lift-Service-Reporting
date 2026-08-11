@@ -87,6 +87,12 @@ export function useLiftData() {
       }
 
       setLoading(true);
+      
+      // Safety timeout: ensure loading is false after 8 seconds no matter what
+      const safetyTimeout = setTimeout(() => {
+        setLoading(false);
+      }, 8000);
+      unsubs.push(() => clearTimeout(safetyTimeout));
 
       // Seed if empty (simplified for this app)
       try {
@@ -119,12 +125,18 @@ export function useLiftData() {
 
       const unsubBuildings = onSnapshot(collection(db, 'buildings'), (snap) => {
         setBuildings(snap.docs.map(d => d.data() as Building));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, 'buildings'));
+      }, (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'buildings');
+        setLoading(false);
+      });
       unsubs.push(unsubBuildings);
 
       const unsubLifts = onSnapshot(collection(db, 'lifts'), (snap) => {
         setLifts(snap.docs.map(d => d.data() as Lift));
-      }, (err) => handleFirestoreError(err, OperationType.LIST, 'lifts'));
+      }, (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'lifts');
+        setLoading(false);
+      });
       unsubs.push(unsubLifts);
 
       const unsubReports = onSnapshot(collection(db, 'reports'), (snap) => {
@@ -132,7 +144,10 @@ export function useLiftData() {
           .map(d => d.data() as ServiceReport)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setReports(sortedReports);
-      }, (err) => handleFirestoreError(err, OperationType.LIST, 'reports'));
+      }, (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'reports');
+        setLoading(false);
+      });
       unsubs.push(unsubReports);
 
       const unsubBreakdowns = onSnapshot(collection(db, 'breakdowns'), (snap) => {
@@ -141,7 +156,10 @@ export function useLiftData() {
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setBreakdowns(sortedBreakdowns);
         setLoading(false);
-      }, (err) => handleFirestoreError(err, OperationType.LIST, 'breakdowns'));
+      }, (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'breakdowns');
+        setLoading(false);
+      });
       unsubs.push(unsubBreakdowns);
     });
 
