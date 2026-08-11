@@ -216,7 +216,8 @@ export default function App() {
     doc.text('For detailed logs, please refer to the digital dashboard.', 20, 52);
 
     if (title === 'Maintenance Logs') {
-      const tableData = filteredReports.map(r => [
+      const exportData = filteredReports.length > 0 ? filteredReports : reports;
+      const tableData = exportData.map(r => [
         r.date,
         buildings.find(b => b.id === r.buildingId)?.name || 'N/A',
         lifts.find(l => l.id === r.liftId)?.name || 'N/A',
@@ -230,7 +231,8 @@ export default function App() {
         startY: 65,
         theme: 'striped',
         headStyles: { fillColor: [6, 78, 59] },
-        styles: { fontSize: 9 }
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { top: 65 }
       });
     } else if (title === 'Breakdown Reports') {
       const filteredBreakdowns = breakdowns.filter(b => 
@@ -238,7 +240,8 @@ export default function App() {
         (!breakdownDateTo || b.date <= breakdownDateTo)
       );
       
-      const tableData = filteredBreakdowns.map(b => [
+      const exportData = filteredBreakdowns.length > 0 ? filteredBreakdowns : breakdowns;
+      const tableData = exportData.map(b => [
         b.date,
         buildings.find(building => building.id === b.buildingId)?.name || 'N/A',
         lifts.find(lift => lift.id === b.liftId)?.name || 'N/A',
@@ -251,8 +254,9 @@ export default function App() {
         body: tableData,
         startY: 65,
         theme: 'striped',
-        headStyles: { fillColor: [255, 30, 57] }, // Rose color for breakdowns
-        styles: { fontSize: 9 }
+        headStyles: { fillColor: [255, 30, 57] },
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { top: 65 }
       });
     }
     
