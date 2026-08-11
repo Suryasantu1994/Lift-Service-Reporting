@@ -51,6 +51,7 @@ import {
   Label
 } from 'recharts';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { auth } from './lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useLiftData } from './data';
@@ -213,10 +214,53 @@ export default function App() {
     doc.setTextColor(15, 23, 42);
     doc.text('This is a summary report of lift activity and maintenance logs.', 20, 45);
     doc.text('For detailed logs, please refer to the digital dashboard.', 20, 52);
+
+    if (title === 'Maintenance Logs') {
+      const tableData = filteredReports.map(r => [
+        r.date,
+        buildings.find(b => b.id === r.buildingId)?.name || 'N/A',
+        lifts.find(l => l.id === r.liftId)?.name || 'N/A',
+        r.technician,
+        r.status
+      ]);
+      
+      autoTable(doc, {
+        head: [['Date', 'Building', 'Lift', 'Technician', 'Status']],
+        body: tableData,
+        startY: 65,
+        theme: 'striped',
+        headStyles: { fillColor: [6, 78, 59] },
+        styles: { fontSize: 9 }
+      });
+    } else if (title === 'Breakdown Reports') {
+      const filteredBreakdowns = breakdowns.filter(b => 
+        (!breakdownDateFrom || b.date >= breakdownDateFrom) && 
+        (!breakdownDateTo || b.date <= breakdownDateTo)
+      );
+      
+      const tableData = filteredBreakdowns.map(b => [
+        b.date,
+        buildings.find(building => building.id === b.buildingId)?.name || 'N/A',
+        lifts.find(lift => lift.id === b.liftId)?.name || 'N/A',
+        b.technician,
+        b.status
+      ]);
+      
+      autoTable(doc, {
+        head: [['Date', 'Building', 'Lift', 'Technician', 'Status']],
+        body: tableData,
+        startY: 65,
+        theme: 'striped',
+        headStyles: { fillColor: [255, 30, 57] }, // Rose color for breakdowns
+        styles: { fontSize: 9 }
+      });
+    }
+    
+    const finalY = (doc as any).lastAutoTable?.finalY || 80;
     
     doc.setFontSize(10);
     doc.setTextColor(148, 163, 184);
-    doc.text('Directorate of Hospitality • GITAM Deemed to be University', 20, 280);
+    doc.text('Directorate of Hospitality • GITAM Deemed to be University', 20, Math.max(280, finalY + 20));
     
     doc.save(`${title.toLowerCase().replace(/\s+/g, '_')}.pdf`);
   };
