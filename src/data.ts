@@ -70,8 +70,13 @@ export function useLiftData() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // We only attach listeners if auth is ready
+    let unsubs: (() => void)[] = [];
+
     const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
+      // Cleanup previous listeners
+      unsubs.forEach(unsub => unsub());
+      unsubs = [];
+
       if (!user) {
         setBuildings([]);
         setLifts([]);
@@ -105,21 +110,22 @@ export function useLiftData() {
           console.log('Seeding complete.');
         }
       } catch (err) {
-        // Only handle as generic error if it wasn't caught in the loops
+        // If it's a permission error during initial check, it might be because the user is not yet fully authorized in rules
+        // or just a race condition. We'll log it but not necessarily crash the whole hook if listeners can still be established.
         if (err instanceof Error && !err.message.includes('Firestore Error')) {
-          handleFirestoreError(err, OperationType.LIST, 'initial-check');
-        } else {
-          throw err;
+          console.warn('Initial data check failed:', err);
         }
       }
 
       const unsubBuildings = onSnapshot(collection(db, 'buildings'), (snap) => {
         setBuildings(snap.docs.map(d => d.data() as Building));
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'buildings'));
+      unsubs.push(unsubBuildings);
 
       const unsubLifts = onSnapshot(collection(db, 'lifts'), (snap) => {
         setLifts(snap.docs.map(d => d.data() as Lift));
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'lifts'));
+      unsubs.push(unsubLifts);
 
       const unsubReports = onSnapshot(collection(db, 'reports'), (snap) => {
         const sortedReports = snap.docs
@@ -127,6 +133,7 @@ export function useLiftData() {
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setReports(sortedReports);
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'reports'));
+      unsubs.push(unsubReports);
 
       const unsubBreakdowns = onSnapshot(collection(db, 'breakdowns'), (snap) => {
         const sortedBreakdowns = snap.docs
@@ -135,16 +142,13 @@ export function useLiftData() {
         setBreakdowns(sortedBreakdowns);
         setLoading(false);
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'breakdowns'));
-
-      return () => {
-        unsubBuildings();
-        unsubLifts();
-        unsubReports();
-        unsubBreakdowns();
-      };
+      unsubs.push(unsubBreakdowns);
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      unsubs.forEach(unsub => unsub());
+    };
   }, []);
 
   const addReport = async (report: ServiceReport) => {

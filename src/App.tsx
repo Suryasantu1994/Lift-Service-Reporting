@@ -216,48 +216,60 @@ export default function App() {
     doc.text('For detailed logs, please refer to the digital dashboard.', 20, 52);
 
     if (title === 'Maintenance Logs') {
-      const exportData = filteredReports.length > 0 ? filteredReports : reports;
-      const tableData = exportData.map(r => [
-        r.date,
-        buildings.find(b => b.id === r.buildingId)?.name || 'N/A',
-        lifts.find(l => l.id === r.liftId)?.name || 'N/A',
-        r.technician,
-        r.status
-      ]);
-      
-      autoTable(doc, {
-        head: [['Date', 'Building', 'Lift', 'Technician', 'Status']],
-        body: tableData,
-        startY: 65,
-        theme: 'striped',
-        headStyles: { fillColor: [6, 78, 59] },
-        styles: { fontSize: 9, cellPadding: 3 },
-        margin: { top: 65 }
-      });
+      const exportData = filteredReports;
+      if (exportData.length === 0) {
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        doc.text('No maintenance records found for the selected criteria.', 20, 70);
+      } else {
+        const tableData = exportData.map(r => [
+          r.date,
+          buildings.find(b => b.id === r.buildingId)?.name || 'N/A',
+          lifts.find(l => l.id === r.liftId)?.name || 'N/A',
+          r.technician,
+          r.status
+        ]);
+        
+        autoTable(doc, {
+          head: [['Date', 'Building', 'Lift', 'Technician', 'Status']],
+          body: tableData,
+          startY: 65,
+          theme: 'striped',
+          headStyles: { fillColor: [6, 78, 59] },
+          styles: { fontSize: 9, cellPadding: 3 },
+          margin: { top: 65 }
+        });
+      }
     } else if (title === 'Breakdown Reports') {
       const filteredBreakdowns = breakdowns.filter(b => 
         (!breakdownDateFrom || b.date >= breakdownDateFrom) && 
         (!breakdownDateTo || b.date <= breakdownDateTo)
       );
       
-      const exportData = filteredBreakdowns.length > 0 ? filteredBreakdowns : breakdowns;
-      const tableData = exportData.map(b => [
-        b.date,
-        buildings.find(building => building.id === b.buildingId)?.name || 'N/A',
-        lifts.find(lift => lift.id === b.liftId)?.name || 'N/A',
-        b.technician,
-        b.status
-      ]);
-      
-      autoTable(doc, {
-        head: [['Date', 'Building', 'Lift', 'Technician', 'Status']],
-        body: tableData,
-        startY: 65,
-        theme: 'striped',
-        headStyles: { fillColor: [255, 30, 57] },
-        styles: { fontSize: 9, cellPadding: 3 },
-        margin: { top: 65 }
-      });
+      const exportData = filteredBreakdowns;
+      if (exportData.length === 0) {
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        doc.text('No breakdown reports found for the selected criteria.', 20, 70);
+      } else {
+        const tableData = exportData.map(b => [
+          b.date,
+          buildings.find(building => building.id === b.buildingId)?.name || 'N/A',
+          lifts.find(lift => lift.id === b.liftId)?.name || 'N/A',
+          b.technician,
+          b.status
+        ]);
+        
+        autoTable(doc, {
+          head: [['Date', 'Building', 'Lift', 'Technician', 'Status']],
+          body: tableData,
+          startY: 65,
+          theme: 'striped',
+          headStyles: { fillColor: [255, 30, 57] },
+          styles: { fontSize: 9, cellPadding: 3 },
+          margin: { top: 65 }
+        });
+      }
     }
     
     const finalY = (doc as any).lastAutoTable?.finalY || 80;
